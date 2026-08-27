@@ -1,0 +1,74 @@
+/*
+ * Material You token layer adapted for CFMonitor MYNT.
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+@font-face {
+  font-family: "Poppins";
+  src: url("../assets/Poppins-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --mynt-seed: #4382ec;
+  --mynt-font: "Poppins", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif;
+  --mynt-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+  --mynt-radius-sm: 12px;
+  --mynt-radius-md: 20px;
+  --mynt-radius-lg: 28px;
+  --mynt-radius-xl: 34px;
+  --mynt-radius-pill: 999px;
+  --mynt-motion-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --mynt-motion-enter: cubic-bezier(0, 0, 0.2, 1);
+  --mynt-motion-exit: cubic-bezier(0.4, 0, 1, 1);
+  --mynt-duration-fast: 160ms;
+  --mynt-duration-medium: 280ms;
+  --mynt-duration-slow: 440ms;
+  --mynt-primary: var(--mynt-seed);
+  --mynt-on-primary: #ffffff;
+  --mynt-primary-container: color-mix(in oklab, var(--mynt-seed) 24%, white);
+  --mynt-on-primary-container: color-mix(in oklab, var(--mynt-seed) 56%, #101828);
+  --mynt-bg: color-mix(in oklab, var(--mynt-seed) 18%, #f7f9ff);
+  --mynt-surface: color-mix(in oklab, var(--mynt-seed) 8%, #ffffff);
+  --mynt-surface-high: color-mix(in oklab, var(--mynt-seed) 15%, #ffffff);
+  --mynt-surface-highest: color-mix(in oklab, var(--mynt-seed) 23%, #ffffff);
+  --mynt-on-surface: color-mix(in oklab, var(--mynt-seed) 18%, #1b2430);
+  --mynt-on-surface-muted: color-mix(in oklab, var(--mynt-seed) 14%, #59636f);
+  --mynt-on-surface-variant: var(--mynt-on-surface-muted);
+  --mynt-outline: color-mix(in oklab, var(--mynt-seed) 28%, #aeb7c4);
+  --mynt-outline-soft: color-mix(in oklab, var(--mynt-seed) 15%, #dce2eb);
+  --mynt-outline-variant: var(--mynt-outline-soft);
+  --mynt-surface-container-low: var(--mynt-surface);
+  --mynt-secondary-container: var(--mynt-surface-highest);
+  --mynt-on-secondary-container: var(--mynt-on-surface);
+  --mynt-shadow: 0 14px 40px color-mix(in srgb, var(--mynt-seed) 13%, transparent);
+  --mynt-shadow-hover: 0 22px 58px color-mix(in srgb, var(--mynt-seed) 21%, transparent);
+  --mynt-scrim: rgb(19 24 33 / 0.42);
+  color-scheme: light;
+}
+
+:root[data-mynt-resolved-mode="dark"],
+:root[data-mynt-color-mode="dark"] {
+  --mynt-primary: color-mix(in oklab, var(--mynt-seed) 66%, white);
+  --mynt-on-primary: color-mix(in oklab, var(--mynt-seed) 55%, #05070a);
+  --mynt-primary-container: color-mix(in oklab, var(--mynt-seed) 42%, #202229);
+  --mynt-on-primary-container: color-mix(in oklab, var(--mynt-seed) 22%, #ffffff);
+  --mynt-bg: color-mix(in oklab, var(--mynt-seed) 8%, #111318);
+  --mynt-surface: color-mix(in oklab, var(--mynt-seed) 8%, #1a1c22);
+  --mynt-surface-high: color-mix(in oklab, var(--mynt-seed) 13%, #23262d);
+  --mynt-surface-highest: color-mix(in oklab, var(--mynt-seed) 18%, #2e3139);
+  --mynt-on-surface: color-mix(in oklab, var(--mynt-seed) 7%, #f2f3f8);
+  --mynt-on-surface-muted: color-mix(in oklab, var(--mynt-seed) 10%, #c0c6d0);
+  --mynt-on-surface-variant: var(--mynt-on-surface-muted);
+  --mynt-outline: color-mix(in oklab, var(--mynt-seed) 24%, #747b86);
+  --mynt-outline-soft: color-mix(in oklab, var(--mynt-seed) 18%, #353942);
+  --mynt-outline-variant: var(--mynt-outline-soft);
+  --mynt-surface-container-low: var(--mynt-surface);
+  --mynt-secondary-container: var(--mynt-surface-highest);
+  --mynt-on-secondary-container: var(--mynt-on-surface);
+  --mynt-shadow: 0 18px 50px rgb(0 0 0 / 0.28);
+  --mynt-shadow-hover: 0 24px 64px rgb(0 0 0 / 0.38);
+  --mynt-scrim: rgb(0 0 0 / 0.66);
+  color-scheme: dark;
+}

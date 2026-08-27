@@ -1,0 +1,19 @@
+MYNT THEME NOTICE
+
+This CFMonitor theme is an adapted work inspired by and incorporating material from MYNT (Material You New Tab).
+
+MYNT original author credits (as stated by the upstream project):
+  - Prem Kumar (the upstream LICENSE records the copyright name as "Prem"), 2024-2026
+  - XengShi, 2023-2025
+
+CFMonitor source portions remain attributable to the CFMonitor project and are originally provided under the MIT License. This notice does not claim ownership of, or alter the license for, unrelated CFMonitor source.
+
+The Poppins font file, when included from the MYNT reference assets, is distributed under the SIL Open Font License, version 1.1 (OFL-1.1). The font's upstream copyright notices and license terms remain in force; this project does not claim ownership of the font.
+
+Material Design Icons paths are distributed by Pictogrammers under Apache-2.0; the @mdi/js package code is MIT licensed.
+
+Modified for the CFMonitor MYNT-style theme on 2026-08-27.
+
+The theme source and published theme artifact are released under GPL-3.0-or-later, excluding third-party assets that are expressly identified above and retain their own licenses.
+
+Full license texts and notices are shipped in this directory: GPL-3.0.txt, OFL-1.1.txt, and MDI-LICENSE.txt.

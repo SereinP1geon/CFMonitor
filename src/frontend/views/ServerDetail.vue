@@ -1,10 +1,17 @@
 <template>
   <div class="container">
-    <TerminalHeader :title="server.name || 'Loading...'" />
+    <TerminalHeader :title="loadError ? trans.serverUnavailable : (server.name || 'Loading...')" />
     
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
       <div class="loading-text">$ {{ trans.loading }}</div>
+    </div>
+
+    <div v-else-if="loadError" class="empty-state detail-error-state" role="status">
+      <span class="empty-icon" aria-hidden="true">!</span>
+      <strong>{{ trans.serverUnavailable }}</strong>
+      <span>{{ trans.serverUnavailableDescription }}</span>
+      <router-link to="/" class="btn detail-error-action">{{ trans.backToDashboard }}</router-link>
     </div>
 
     <template v-else>
@@ -398,6 +405,7 @@ const showLoginModal = ref(false)
 const showLiveTimeoutModal = ref(false)
 const frontendWsTimeoutMinutes = ref(0)
 const loading = ref(true)
+const loadError = ref(false)
 
 const trans = useTranslation()
 
@@ -1549,7 +1557,11 @@ const fetchCurrentStatus = async (incomingData, options = {}) => {
     let data = incomingData
     if (!data) {
       data = await fetchServerDetail(serverId, apiIndex.value)
-      if (!data) return
+      if (!data) {
+        loadError.value = true
+        loading.value = false
+        return null
+      }
     }
     if (!data) return
 
@@ -1567,6 +1579,7 @@ const fetchCurrentStatus = async (incomingData, options = {}) => {
       }
       server.value = newServer
     } else {
+      loadError.value = false
       config.value = data.sysConfig || null
       server.value = data
       markDiskIoDataAvailable(data)
@@ -1586,6 +1599,10 @@ const fetchCurrentStatus = async (incomingData, options = {}) => {
     return data
   } catch (e) {
     console.error('[ERROR] Update status failed:', e)
+    if (!incomingData) {
+      loadError.value = true
+      loading.value = false
+    }
     return null
   }
 }
@@ -1695,6 +1712,7 @@ const init = async () => {
     fetchCurrentStatus(),
     loadThemeOptionsFromConfig()
   ])
+  if (!initialData) return
   await initChartsOnMount()
 
   await loadAllHistory(currentHours.value)

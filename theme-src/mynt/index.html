@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN" data-mynt-color-mode="system">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#BBD6FD">
+    <meta name="description" content="CFMonitor MYNT — Material You inspired server monitoring theme">
+    <title>CFMonitor MYNT</title>
+    <script>
+      (() => {
+        try {
+          const stored = JSON.parse(localStorage.getItem('cfmonitor-mynt-preferences-v1') || '{}')
+          const mode = ['light', 'dark', 'system'].includes(stored.colorMode) ? stored.colorMode : 'system'
+          const accent = /^#[0-9A-F]{6}$/i.test(stored.accent || '') ? stored.accent : '#4382EC'
+          document.documentElement.dataset.myntColorMode = mode
+          document.documentElement.style.setProperty('--mynt-seed', accent)
+        } catch (_) {}
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="loading" class="mynt-boot" aria-live="polite">
+      <div class="mynt-boot-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <strong>CFMonitor</strong>
+      <small>Preparing your monitor</small>
+    </div>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

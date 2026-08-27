@@ -1,5 +1,6 @@
-# Cloudflare Workers 配置，线上已由deploy.yml接管，这里仅供本地测试
-name = "cf-server-monitor"
+# CFMonitor MYNT Cloudflare Workers 配置
+name = "cfmonitor-mynt"
+account_id = "7648d191cfe703778022f8aca14ed673"
 main = "src/index.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
@@ -13,13 +14,18 @@ keep_vars = true
 [triggers]
 crons = ["*/1 * * * *", "0 * * * *"]
 
+[[routes]]
+pattern = "836917.xyz"
+custom_domain = true
+
 [assets]
 directory = "./dist"
 binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "server-monitor-db"
+database_name = "cfmonitor-mynt-db"
+database_id = "537442b1-b346-4de5-9fd8-e8b1d211caad"
 
 # Durable Objects：实时指标广播中心
 # 注意：首次部署前需要执行 `wrangler durable-object create MetricsBroadcaster --class MetricsBroadcaster`
