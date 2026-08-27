@@ -1,6 +1,7 @@
 # CFMonitor MYNT Cloudflare Workers 配置
 name = "cfmonitor-mynt"
 account_id = "7648d191cfe703778022f8aca14ed673"
+workers_dev = true
 main = "src/index.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
