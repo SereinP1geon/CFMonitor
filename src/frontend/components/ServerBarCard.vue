@@ -1,10 +1,17 @@
 <template>
-  <router-link :to="to" class="server-card" :data-region="regionCode">
+  <router-link :to="to" class="server-card" :class="{ 'server-card-compact': compact }" :data-region="regionCode">
     <div class="server-card-header">
       <div class="server-identity">
         <span v-if="regionCode && regionCode !== 'xx'" class="country-os-icons">
-          <img class="flag-img" :src="getPublicAssetUrl('flags/' + regionCode + '.svg')" :alt="regionCode">
-          <OsIcon :os="server.os" />
+          <PublicAssetImage
+            class="flag-img"
+            :src="'flags/' + regionCode + '.svg'"
+            :alt="regionCode"
+            :fallback="regionCode.toUpperCase()"
+            :loading="compact ? 'eager' : 'lazy'"
+            decoding="async"
+          />
+          <OsIcon :os="server.os" :eager="compact" />
         </span>
         <span v-else class="country-os-icons">
           <span class="flag-fallback">🏳️</span>
@@ -14,7 +21,7 @@
       </div>
       <span class="status-label" :style="{ color: statusColor, borderColor: statusColor }">{{ statusText }}</span>
     </div>
-    <div class="server-meta">
+    <div v-if="!compact" class="server-meta">
       <div class="card-meta">
         <div v-if="sysConfig.show_price && priceText" class="card-meta-item">💰 {{ priceText }}</div>
         <div v-if="sysConfig.show_expire && server.expire_date" class="card-meta-item card-meta-expire">
@@ -50,7 +57,7 @@
           <span class="stat-value">{{ ramPercent.toFixed(2) }}%</span>
         </div>
       </div>
-      <div class="stat-row">
+      <div v-if="!compact" class="stat-row">
         <span class="stat-key">DISK</span>
         <div class="stat-content stat-content-meter">
           <div class="stat-bar-container">
@@ -59,7 +66,7 @@
           <span class="stat-value">{{ diskPercent.toFixed(2) }}%</span>
         </div>
       </div>
-      <div class="stat-row" v-if="sysConfig.show_tf">
+      <div class="stat-row" v-if="!compact && sysConfig.show_tf">
         <span class="stat-key">USE</span>
         <div class="stat-content stat-content-meter">
           <template v-if="server.traffic_limit">
@@ -76,7 +83,7 @@
           </template>
         </div>
       </div>
-      <div class="stat-row">
+      <div v-if="!compact" class="stat-row">
         <span class="stat-key">LOAD</span>
         <div class="stat-content">
           <span class="net-down">{{ loadAvg[0].toFixed(2) }}</span>
@@ -91,7 +98,7 @@
           <span class="net-up">▲ {{ netOutSpeed }}/s</span>
         </div>
       </div>
-      <div class="stat-row">
+      <div v-if="!compact" class="stat-row">
         <span class="stat-key">TRF</span>
         <div class="stat-content">
           <span class="net-down">▼ {{ totalRxMonthly }}</span>
@@ -100,8 +107,9 @@
         </div>
       </div>
     </div>
-    <div class="server-space"></div>
+    <div v-if="!compact" class="server-space"></div>
     <ServerLatencyPanel
+      v-if="!compact"
       :show-three-net-details="sysConfig.show_three_net_details"
       :has-three-net-details="hasThreeNetDetails"
       :three-net-details="threeNetDetails"
@@ -119,6 +127,7 @@
 
 <script setup>
 import OsIcon from './OsIcon.vue'
+import PublicAssetImage from './PublicAssetImage.vue'
 import ServerLatencyPanel from './ServerLatencyPanel.vue'
 import { DEFAULT_SERVER_CARD_CONFIG, useServerCardData } from '../composables/useServerCardData'
 
@@ -134,6 +143,10 @@ const props = defineProps({
   to: {
     type: String,
     default: ''
+  },
+  compact: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -170,7 +183,6 @@ const {
   hasPingData,
   threeNetDetails,
   hasThreeNetDetails,
-  getPublicAssetUrl,
   formatBytes
 } = useServerCardData(props)
 </script>

@@ -92,6 +92,7 @@ export async function initDatabase(db) {
           report_interval INTEGER DEFAULT 60,
           wss_report_interval INTEGER DEFAULT 2,
           connection_mode TEXT DEFAULT 'auto',
+          ping_mode TEXT DEFAULT 'tcp',
           auto_update TEXT DEFAULT '0',
           custom_ct TEXT DEFAULT '',
           custom_cu TEXT DEFAULT '',
@@ -396,7 +397,7 @@ function normalizeLatencyHistoryValue(value, metricType) {
   return number > 0 ? Math.round(number) : null;
 }
 
-function buildLatencyHistoryPoint(row, metricType) {
+function buildLatencyHistoryPoint(row, metricType, { includeEmpty = false } = {}) {
   const timestamp = Number(row?.timestamp);
   if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
 
@@ -406,26 +407,54 @@ function buildLatencyHistoryPoint(row, metricType) {
     if (!Object.prototype.hasOwnProperty.call(row, column)) continue;
     const value = normalizeLatencyHistoryValue(row[column], metricType);
     if (value !== null) point[field] = value;
+    else if (includeEmpty) point[field] = null;
   }
 
-  return Object.keys(point).length > 1 ? point : null;
+  return includeEmpty || Object.keys(point).length > 1 ? point : null;
 }
 
-function normalizeDashboardLatencyRows(rows) {
+function normalizeDashboardLatencyRows(rows, options = {}) {
   const ping = [];
   const loss = [];
 
   for (const row of rows || []) {
-    const pingPoint = buildLatencyHistoryPoint(row, 'ping');
+    const pingPoint = buildLatencyHistoryPoint(row, 'ping', options);
     if (pingPoint) ping.push(pingPoint);
 
-    const lossPoint = buildLatencyHistoryPoint(row, 'loss');
+    const lossPoint = buildLatencyHistoryPoint(row, 'loss', options);
     if (lossPoint) loss.push(lossPoint);
   }
 
   ping.sort((a, b) => a.ts - b.ts);
   loss.sort((a, b) => a.ts - b.ts);
   return { ping, loss };
+}
+
+function parseDashboardLatencySample(row) {
+  if (!row?.sample_json) return null;
+  try {
+    return JSON.parse(row.sample_json);
+  } catch (_) {
+    return null;
+  }
+}
+
+function normalizeDashboardLatencyWindow(sampleRows, { queryStart, intervalMs, points }) {
+  const rows = Array.from({ length: points }, (_, index) => {
+    const bucketTimestamp = queryStart + index * intervalMs;
+    const sample = parseDashboardLatencySample(sampleRows?.[index]);
+    if (!sample || typeof sample !== 'object') {
+      return { timestamp: bucketTimestamp };
+    }
+
+    return {
+      ...sample,
+      sample_timestamp: Number(sample.timestamp),
+      timestamp: bucketTimestamp
+    };
+  });
+
+  return normalizeDashboardLatencyRows(rows, { includeEmpty: true });
 }
 
 export async function getDashboardLatencyHistory(db, servers, options = {}) {
@@ -481,7 +510,7 @@ export async function getDashboardLatencyHistory(db, servers, options = {}) {
         return;
       }
 
-      const queryStart = Math.max(cutoff, historyInfo.startTimestamp);
+      const queryStart = cutoff;
       if (queryStart >= queryEnd) {
         result.set(serverId, { ping: [], loss: [] });
         return;
@@ -497,14 +526,12 @@ export async function getDashboardLatencyHistory(db, servers, options = {}) {
         intervalMs,
         idPrefix,
         oldTableExists,
-        tableBoundary: thisSunday.getTime()
+        tableBoundary: thisSunday.getTime(),
+        sampleOrder: 'DESC'
       });
 
       const rawResult = await db.prepare(sparseQuery.sql).bind(...sparseQuery.bindValues).all();
-      const rows = rawResult.results
-        .filter(row => row.sample_json)
-        .map(row => JSON.parse(row.sample_json));
-      const window = normalizeDashboardLatencyRows(rows);
+      const window = normalizeDashboardLatencyWindow(rawResult.results, { queryStart, intervalMs, points });
       result.set(serverId, window);
       if (useCache) {
         dashboardLatencyHistoryCache.set(serverId, { cachedAt: now, window });

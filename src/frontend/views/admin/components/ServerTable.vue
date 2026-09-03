@@ -79,7 +79,14 @@
             <td>
               <div class="server-info">
                 <span v-if="server.region && server.region !== 'xx'" class="country-os-icons">
-                  <img :src="getPublicAssetUrl('flags/' + getFlagRegionCode(server.region) + '.svg')" :alt="server.region" class="flag-img">
+                  <PublicAssetImage
+                    :src="'flags/' + getFlagRegionCode(server.region) + '.svg'"
+                    :alt="server.region"
+                    class="flag-img"
+                    :fallback="getFlagRegionCode(server.region).toUpperCase()"
+                    loading="lazy"
+                    decoding="async"
+                  />
                   <OsIcon :os="server.os" />
                 </span>
                 <span v-else class="country-os-icons">
@@ -180,10 +187,10 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getFlagRegionCode, formatBytes } from '../../../utils/api'
-import { getPublicAssetUrl } from '../../../utils/config'
 import { currentLang } from '../../../utils/i18n'
 import { detectBillingCycle, detectCurrencySymbol, getBillingCycleOption, isEnabledFlag, isFreePrice, normalizeCurrency, normalizePrice } from '../../../utils/server.js'
 import OsIcon from '../../../components/OsIcon.vue'
+import PublicAssetImage from '../../../components/PublicAssetImage.vue'
 import HelpTooltip from '../../../components/HelpTooltip.vue'
 
 const props = defineProps({

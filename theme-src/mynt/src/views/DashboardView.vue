@@ -1,6 +1,6 @@
 <template>
   <div class="mynt-view mynt-dashboard-view">
-    <Dashboard />
+    <Dashboard compact-mobile />
     <MyntFooter
       :version="VERSION"
       source-url="https://github.com/SereinP1geon/CFMonitor"

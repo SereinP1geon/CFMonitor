@@ -1,5 +1,5 @@
 <template>
-  <div class="container" :class="{ 'mikus-dashboard': isMikusTheme }">
+  <div class="container" :class="{ 'mikus-dashboard': isMikusTheme, 'compact-mobile-dashboard': isCompactMobile }">
     <TerminalHeader :title="sysConfig.site_title || DEFAULT_SITE_TITLE" />
     
     <div v-if="isLoading" class="loading-state" :class="{ 'mikus-loading-state': isMikusTheme }">
@@ -27,7 +27,7 @@
       <div class="header-row">
         <div class="site-title">$ {{ sysConfig.site_title || DEFAULT_SITE_TITLE }}</div>
         <div class="controls-group">
-          <div class="view-toggle">
+          <div v-if="!isCompactMobile" class="view-toggle">
             <button
               class="toggle-btn"
               :class="{ active: currentView === 'bar' }"
@@ -51,7 +51,7 @@
           </div>
         </div>
       </div>
-      <div class="filter-wrap" ref="filterWrap">
+      <div v-if="!isCompactMobile" class="filter-wrap" ref="filterWrap">
         <div class="filter-bar" id="ajax-filters">
           <button
             v-for="item in visibleFilterOptions"
@@ -63,7 +63,14 @@
             @click="setFilter(item.code)"
           >
             <span v-if="item.code === 'unknown'" class="filter-tag-icon">🏳️</span>
-            <img v-else-if="item.flagCode" :src="getPublicAssetUrl('flags/' + item.flagCode + '.svg')" :alt="item.code">
+            <PublicAssetImage
+              v-else-if="item.flagCode"
+              :src="'flags/' + item.flagCode + '.svg'"
+              :alt="item.code"
+              :fallback="item.code.toUpperCase()"
+              loading="lazy"
+              decoding="async"
+            />
             <span class="filter-tag-label">{{ item.label }}</span>
             <span class="filter-tag-count">{{ item.count }}</span>
           </button>
@@ -88,7 +95,14 @@
                 @click="setFilter(item.code)"
               >
                 <span v-if="item.code === 'unknown'" class="filter-tag-icon">🏳️</span>
-                <img v-else-if="item.flagCode" :src="getPublicAssetUrl('flags/' + item.flagCode + '.svg')" :alt="item.code">
+                <PublicAssetImage
+                  v-else-if="item.flagCode"
+                  :src="'flags/' + item.flagCode + '.svg'"
+                  :alt="item.code"
+                  :fallback="item.code.toUpperCase()"
+                  loading="lazy"
+                  decoding="async"
+                />
                 <span class="filter-tag-label">{{ item.label }}</span>
                 <span class="filter-tag-count">{{ item.count }}</span>
               </button>
@@ -103,7 +117,14 @@
             class="filter-tag filter-measure-tag"
           >
             <span v-if="item.code === 'unknown'" class="filter-tag-icon">🏳️</span>
-            <img v-else-if="item.flagCode" :src="getPublicAssetUrl('flags/' + item.flagCode + '.svg')" :alt="item.code">
+            <PublicAssetImage
+              v-else-if="item.flagCode"
+              :src="'flags/' + item.flagCode + '.svg'"
+              :alt="item.code"
+              :fallback="item.code.toUpperCase()"
+              loading="lazy"
+              decoding="async"
+            />
             <span class="filter-tag-label">{{ item.label }}</span>
             <span class="filter-tag-count">{{ item.count }}</span>
           </button>
@@ -116,7 +137,7 @@
     </div>
 
     <div class="global-stats" :class="{ 'mikus-global-stats': isMikusTheme }">
-      <div v-if="isMikusTheme" class="mikus-stats-mascot" aria-hidden="true">
+      <div v-if="isMikusTheme && !isCompactMobile" class="mikus-stats-mascot" aria-hidden="true">
         <img class="mikus-stats-mascot-img" :src="mikusAsset('QWQ.webp')" alt="">
       </div>
       <div class="stat-item">
@@ -126,7 +147,7 @@
           <span class="stat-offline-color">{{ trans.offline }}:{{ stats.offline }}</span>
         </div>
       </div>
-      <div class="stat-item">
+      <div v-if="!isCompactMobile" class="stat-item">
         <div class="stat-label">{{ trans.totalTraffic }}</div>
         <div class="stat-main-value stat-main-value-sm">{{ formatBytes(stats.globalNetRx) }} ↓ | ↑ {{ formatBytes(stats.globalNetTx) }}</div>
       </div>
@@ -138,7 +159,7 @@
         </div>
       </div>
       <div
-        v-if="sysConfig.show_price"
+        v-if="!isCompactMobile && sysConfig.show_price"
         class="stat-item stat-action-item"
         @click="financeModalOpen = true"
       >
@@ -147,6 +168,53 @@
           {{ formattedRemainingValue.symbol }}{{ formattedRemainingValue.value }}
           <span class="finance-currency-code">{{ formattedRemainingValue.currency }}</span>
         </div>
+      </div>
+    </div>
+
+    <details v-if="isCompactMobile" class="compact-mobile-overview">
+      <summary>{{ currentLang === 'zh' ? '概览' : 'Overview' }}</summary>
+      <div class="compact-mobile-overview-grid">
+        <div class="stat-item">
+          <div class="stat-label">{{ trans.totalTraffic }}</div>
+          <div class="stat-main-value stat-main-value-sm">{{ formatBytes(stats.globalNetRx) }} ↓ | ↑ {{ formatBytes(stats.globalNetTx) }}</div>
+        </div>
+        <div
+          v-if="sysConfig.show_price"
+          class="stat-item stat-action-item"
+          @click="financeModalOpen = true"
+        >
+          <div class="stat-label">{{ trans.remainingValue }}</div>
+          <div class="stat-main-value stat-main-value-sm">
+            {{ formattedRemainingValue.symbol }}{{ formattedRemainingValue.value }}
+            <span class="finance-currency-code">{{ formattedRemainingValue.currency }}</span>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div v-if="isCompactMobile" class="filter-wrap compact-mobile-filter-wrap" ref="filterWrap">
+      <div class="filter-bar compact-mobile-filter-bar" id="ajax-filters">
+        <button
+          v-for="item in visibleFilterOptions"
+          :key="item.code"
+          type="button"
+          class="filter-tag"
+          :class="{ active: currentFilter === item.code, 'filter-tag-unknown': item.code === 'unknown' }"
+          :data-filter="item.code"
+          @click="setFilter(item.code)"
+        >
+          <span v-if="item.code === 'unknown'" class="filter-tag-icon">🏳️</span>
+          <PublicAssetImage
+            v-else-if="item.flagCode"
+            :src="'flags/' + item.flagCode + '.svg'"
+            :alt="item.code"
+            :fallback="item.code.toUpperCase()"
+            loading="eager"
+            decoding="async"
+          />
+          <span class="filter-tag-label">{{ item.label }}</span>
+          <span class="filter-tag-count">{{ item.count }}</span>
+        </button>
       </div>
     </div>
 
@@ -163,17 +231,18 @@
             <component
               :is="currentCardComponent"
               v-for="server in group.servers"
-              :key="server.id + '-' + currentView"
+              :key="server.id + '-' + effectiveView"
               :server="server"
               :sys-config="sysConfig"
               :to="getServerLink(server)"
+              :compact="isCompactMobile || undefined"
             />
           </div>
         </div>
       </div>
     </div>
 
-    <div id="view-table" class="view-panel" :class="{ active: currentView === 'table' }">
+    <div id="view-table" class="view-panel" :class="{ active: effectiveView === 'table' }">
       <div class="table-container">
         <table class="terminal-table">
           <thead>
@@ -215,7 +284,14 @@
               <td><b class="table-server-name">{{ server.name }}</b></td>
               <td>
                 <span v-if="server.region && server.region !== 'xx'" class="country-os-icons">
-                  <img :src="getPublicAssetUrl('flags/' + getFlagRegionCode(server.region) + '.svg')" :alt="server.region" class="flag-img">
+                  <PublicAssetImage
+                    :src="'flags/' + getFlagRegionCode(server.region) + '.svg'"
+                    :alt="server.region"
+                    class="flag-img"
+                    :fallback="getFlagRegionCode(server.region).toUpperCase()"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </span>
                 <span v-else class="country-os-icons">
                   <span class="flag-fallback">🏳️</span>
@@ -273,7 +349,7 @@
       </div>
     </div>
 
-    <div id="view-map" class="view-panel" :class="{ active: currentView === 'map' }">
+    <div id="view-map" class="view-panel" :class="{ active: effectiveView === 'map' }">
       <div class="map-wrapper">
         <div ref="mapContainer" id="map-container"></div>
       </div>
@@ -371,16 +447,18 @@ import ServerBarCard from '../components/ServerBarCard.vue'
 import ServerRingCard from '../components/ServerRingCard.vue'
 import Footer from '../components/Footer.vue'
 import OsIcon from '../components/OsIcon.vue'
+import PublicAssetImage from '../components/PublicAssetImage.vue'
 import LiveConnectionTimeoutModal from '../components/LiveConnectionTimeoutModal.vue'
 import { fetchConfig, fetchServersAll, fetchServersAllWithProgress, formatBytes, createLiveSocket, getFlagRegionCode, getApiBases, isServerOnline, normalizeLiveSocketTimeoutMinutes } from '../utils/api.js'
 import { calcTrafficUsagePercent, getUsageColor } from '../composables/useServerCardData'
 import { getTitle, hasMultipleApiBases, getPublicAssetUrl } from '../utils/config'
 import { currentLang, useTranslation } from '../utils/i18n.js'
-import { TIME, DEFAULT_SITE_TITLE, STORAGE } from '../utils/constants'
+import { TIME, DEFAULT_SITE_TITLE, STORAGE, LATENCY_WINDOW } from '../utils/constants'
 import { normalizeTimestamp as normalizeMetricTimestamp } from '../utils/time.js'
 import { normalizeDashboardView, normalizeDisplayMode, resolveDisplayMode } from '../utils/displayMode.js'
 import { getPlaybackElapsedMs, resolvePlaybackCursor } from '../utils/playback.js'
 import { getMikusAssetUrl, isMikusThemeEnabled, normalizeThemeOptions, setMikusThemeClass } from '../utils/themeOptions.js'
+import { canUseDashboardViewPreference, isCompactMobileViewport, resolveDashboardView } from '../utils/compactMobile.js'
 import {
   CURRENCY_SYMBOLS,
   DEFAULT_EXCHANGE_RATES,
@@ -394,6 +472,13 @@ import {
   setStoredFinanceCurrency
 } from '../utils/finance.js'
 
+const props = defineProps({
+  compactMobile: {
+    type: Boolean,
+    default: false
+  }
+})
+
 const servers = ref([])
 const stats = ref({ total: '-', online: 0, offline: 0, globalNetRx: 0, globalNetTx: 0, globalSpeedIn: 0, globalSpeedOut: 0 })
 const unknownStats = ref(0)
@@ -402,11 +487,15 @@ const sysConfig = ref({
   show_price: true,
   show_expire: true,
   show_tf: true,
-  show_three_net_details: false,
+  show_three_net_details: true,
   frontend_ws_timeout_minutes: normalizeLiveSocketTimeoutMinutes(appConfig?.frontend_ws_timeout_minutes),
   display_mode: 'bar',
   site_title: DEFAULT_SITE_TITLE,
-  theme_options: normalizeThemeOptions(appConfig?.theme_options)
+  theme_options: normalizeThemeOptions(appConfig?.theme_options),
+  latency_window: appConfig?.latency_window || {
+    points: LATENCY_WINDOW.POINTS,
+    hours: LATENCY_WINDOW.HOURS
+  }
 })
 const regionStats = ref({})
 const currentView = ref('bar')
@@ -428,10 +517,30 @@ const exchangeRates = ref(DEFAULT_EXCHANGE_RATES)
 const exchangeRateSource = ref('default')
 const now = ref(Date.now())
 const router = useRouter()
+const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : Number.POSITIVE_INFINITY)
+const coarsePointerQuery = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+  ? window.matchMedia('(pointer: coarse)')
+  : null
+const hasCoarsePointer = ref(coarsePointerQuery?.matches === true)
 
 const trans = useTranslation()
 const financeRateCurrencies = DISPLAY_FINANCE_CURRENCIES
 const isMikusTheme = computed(() => isMikusThemeEnabled(sysConfig.value.theme_options))
+const isCompactMobile = computed(() => props.compactMobile && isCompactMobileViewport({
+  width: viewportWidth.value,
+  coarsePointer: hasCoarsePointer.value
+}))
+const effectiveView = computed(() => resolveDashboardView({
+  compactMobile: props.compactMobile,
+  width: viewportWidth.value,
+  coarsePointer: hasCoarsePointer.value,
+  desktopView: currentView.value
+}))
+const canUseViewPreference = computed(() => canUseDashboardViewPreference({
+  compactMobile: props.compactMobile,
+  width: viewportWidth.value,
+  coarsePointer: hasCoarsePointer.value
+}))
 
 const mikusAsset = (filename) => getMikusAssetUrl(filename)
 
@@ -535,8 +644,12 @@ const filterOptionEntries = computed(() => Object.entries(filterOptions.value).m
 })))
 
 const filterMoreLabel = computed(() => currentLang.value === 'zh' ? '更多' : 'MORE')
-const visibleFilterOptions = computed(() => filterOptionEntries.value.slice(0, filterVisibleCount.value))
-const overflowFilterOptions = computed(() => filterOptionEntries.value.slice(filterVisibleCount.value))
+const visibleFilterOptions = computed(() => isCompactMobile.value
+  ? filterOptionEntries.value
+  : filterOptionEntries.value.slice(0, filterVisibleCount.value))
+const overflowFilterOptions = computed(() => isCompactMobile.value
+  ? []
+  : filterOptionEntries.value.slice(filterVisibleCount.value))
 const isOverflowFilterActive = computed(() => overflowFilterOptions.value.some(item => item.code === currentFilter.value))
 
 let filterResizeObserver = null
@@ -644,10 +757,11 @@ const groupedServers = computed(() => {
   return order.map(name => ({ name, servers: groups[name] }))
 })
 
-const isCardView = computed(() => currentView.value === 'bar' || currentView.value === 'ring')
-const currentCardComponent = computed(() => currentView.value === 'ring' ? ServerRingCard : ServerBarCard)
+const isCardView = computed(() => effectiveView.value === 'bar' || effectiveView.value === 'ring')
+const currentCardComponent = computed(() => effectiveView.value === 'ring' ? ServerRingCard : ServerBarCard)
 
 const switchView = (viewName) => {
+  if (!canUseViewPreference.value) return
   const normalizedView = normalizeDashboardView(viewName, sysConfig.value.display_mode)
   currentView.value = normalizedView
   localStorage.setItem(STORAGE.VIEW_PREFERENCE, normalizedView)
@@ -938,7 +1052,7 @@ const runDashboardTick = () => {
   now.value = Date.now()
   advanceServerClocks()
   recomputeStats(now.value)
-  if (currentView.value === 'map') drawMarkers()
+  if (effectiveView.value === 'map') drawMarkers()
 }
 
 const mergeServersIntoList = (rawServers) => {
@@ -961,7 +1075,8 @@ const loadDashboardConfig = async () => {
       site_title: hasMultipleApiBases() && localTitle ? localTitle : (siteTitle || sysConfig.value.site_title),
       display_mode: resolveDisplayMode(config),
       frontend_ws_timeout_minutes: normalizeLiveSocketTimeoutMinutes(config?.frontend_ws_timeout_minutes),
-      theme_options: normalizeThemeOptions(config?.theme_options)
+      theme_options: normalizeThemeOptions(config?.theme_options),
+      latency_window: config?.latency_window || sysConfig.value.latency_window
     }
   } catch (e) {
     console.log('[INFO] Dashboard config pending...', e)
@@ -994,7 +1109,8 @@ const refreshData = async () => {
           frontend_ws_timeout_minutes: sysConfig.value.frontend_ws_timeout_minutes,
           display_mode: normalizeDisplayMode(data.sysConfig?.display_mode),
           site_title: sysConfig.value.site_title || DEFAULT_SITE_TITLE,
-          theme_options: sysConfig.value.theme_options
+          theme_options: sysConfig.value.theme_options,
+          latency_window: data.sysConfig?.latency_window || sysConfig.value.latency_window
         }
 
         if (data.corsErrorSites?.length && !hasCorsError.value) hasCorsError.value = [...data.corsErrorSites]
@@ -1032,7 +1148,8 @@ const refreshData = async () => {
       frontend_ws_timeout_minutes: sysConfig.value.frontend_ws_timeout_minutes,
       display_mode: normalizeDisplayMode(data.sysConfig?.display_mode),
       site_title: sysConfig.value.site_title || DEFAULT_SITE_TITLE,
-      theme_options: sysConfig.value.theme_options
+      theme_options: sysConfig.value.theme_options,
+      latency_window: data.sysConfig?.latency_window || sysConfig.value.latency_window
     }
 
     drawMarkers()
@@ -1277,17 +1394,54 @@ const goToServer = (server) => {
   router.push(getServerLink(server))
 }
 
-onMounted(async () => {
-  financeCurrency.value = getStoredFinanceCurrency()
-  loadFinanceRates()
+const syncCompactViewport = () => {
+  viewportWidth.value = window.innerWidth
+  hasCoarsePointer.value = coarsePointerQuery?.matches === true
+}
 
-  await loadDashboardConfig()
+const loadDesktopViewPreference = () => {
   const rawSavedView = localStorage.getItem(STORAGE.VIEW_PREFERENCE)
   const savedView = normalizeDashboardView(rawSavedView, sysConfig.value.display_mode)
   currentView.value = savedView
   if (rawSavedView && rawSavedView !== savedView) {
     localStorage.setItem(STORAGE.VIEW_PREFERENCE, savedView)
   }
+  return savedView
+}
+
+let dashboardMounted = false
+
+watch(isCompactMobile, async (compact, wasCompact) => {
+  if (!dashboardMounted || compact === wasCompact) return
+
+  filterMoreOpen.value = false
+  await nextTick()
+  if (filterResizeObserver && filterWrap.value) {
+    filterResizeObserver.disconnect()
+    filterResizeObserver.observe(filterWrap.value)
+  }
+  scheduleFilterMeasurement()
+
+  if (!compact) {
+    const restoredView = loadDesktopViewPreference()
+    if (restoredView === 'map') switchView('map')
+  }
+})
+
+onMounted(async () => {
+  syncCompactViewport()
+  window.addEventListener('resize', syncCompactViewport)
+  if (coarsePointerQuery?.addEventListener) {
+    coarsePointerQuery.addEventListener('change', syncCompactViewport)
+  } else if (coarsePointerQuery?.addListener) {
+    coarsePointerQuery.addListener(syncCompactViewport)
+  }
+
+  financeCurrency.value = getStoredFinanceCurrency()
+  loadFinanceRates()
+
+  await loadDashboardConfig()
+  if (canUseViewPreference.value) loadDesktopViewPreference()
   await refreshData()
   await nextTick()
   scheduleFilterMeasurement()
@@ -1305,13 +1459,15 @@ onMounted(async () => {
   runDashboardTick()
   timeUpdateInterval = setInterval(runDashboardTick, 1000)
 
-  if (currentView.value === 'map') {
+  dashboardMounted = true
+
+  if (effectiveView.value === 'map') {
     switchView('map')
   }
 
   themeObserver = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
-      if (mutation.attributeName === 'class' && currentView.value === 'map') {
+      if (mutation.attributeName === 'class' && effectiveView.value === 'map') {
         currentMapDataStr = ''
         drawMarkers()
       }
@@ -1321,9 +1477,16 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  dashboardMounted = false
   document.removeEventListener('visibilitychange', handleVisibility)
   document.removeEventListener('click', closeFilterMoreOnOutsideClick)
+  window.removeEventListener('resize', syncCompactViewport)
   window.removeEventListener('resize', scheduleFilterMeasurement)
+  if (coarsePointerQuery?.removeEventListener) {
+    coarsePointerQuery.removeEventListener('change', syncCompactViewport)
+  } else if (coarsePointerQuery?.removeListener) {
+    coarsePointerQuery.removeListener(syncCompactViewport)
+  }
   if (filterMeasureTimer) clearTimeout(filterMeasureTimer)
   if (filterResizeObserver) filterResizeObserver.disconnect()
   if (timeUpdateInterval) clearInterval(timeUpdateInterval)

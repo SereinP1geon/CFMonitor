@@ -4,7 +4,14 @@
       <div class="server-card-header">
         <div class="server-identity">
           <span v-if="regionCode && regionCode !== 'xx'" class="country-os-icons">
-            <img class="flag-img" :src="getPublicAssetUrl('flags/' + regionCode + '.svg')" :alt="regionCode">
+            <PublicAssetImage
+              class="flag-img"
+              :src="'flags/' + regionCode + '.svg'"
+              :alt="regionCode"
+              :fallback="regionCode.toUpperCase()"
+              loading="lazy"
+              decoding="async"
+            />
             <OsIcon :os="server.os" />
           </span>
           <span v-else class="country-os-icons">
@@ -132,6 +139,7 @@
 
 <script setup>
 import OsIcon from './OsIcon.vue'
+import PublicAssetImage from './PublicAssetImage.vue'
 import ServerLatencyPanel from './ServerLatencyPanel.vue'
 import { DEFAULT_SERVER_CARD_CONFIG, useServerCardData } from '../composables/useServerCardData'
 
@@ -187,7 +195,6 @@ const {
   hasPingData,
   threeNetDetails,
   hasThreeNetDetails,
-  getPublicAssetUrl,
   tagList,
   tagColorClass,
   hasPublicIPv4,

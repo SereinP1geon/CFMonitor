@@ -64,9 +64,44 @@ export const hasConfiguredApiBase = () => configuredApiBase
 
 export const getTitle = () => title
 
-export const getPublicAssetUrl = (assetPath) => {
-  const cleanPath = String(assetPath || '').replace(/^\/+/, '')
-  return cleanPath ? `./${cleanPath}` : './'
+const getRuntimeBaseUri = () => {
+  if (typeof document !== 'undefined' && document.baseURI) return document.baseURI
+  if (typeof window !== 'undefined' && window.location?.href) return window.location.href
+  return ''
 }
 
-export default { initConfig, getApiBases, getWsBase, hasMultipleApiBases, hasConfiguredApiBase, getTitle, getPublicAssetUrl }
+/**
+ * Resolve a public asset against the directory containing the current document.
+ *
+ * Using the document directory instead of location.pathname keeps the result
+ * stable on hash routes and also honours a <base> element when a static build is
+ * deployed below a GitHub Pages project path.
+ */
+export const resolvePublicAssetUrl = (assetPath, baseUri = '') => {
+  const rawPath = String(assetPath || '')
+  const cleanPath = rawPath.replace(/^\/+/, '')
+  const relativePath = cleanPath || '.'
+  const resolvedBaseUri = String(baseUri || getRuntimeBaseUri())
+
+  if (!resolvedBaseUri) return cleanPath ? `./${cleanPath}` : './'
+
+  try {
+    const deploymentDirectory = new URL('.', resolvedBaseUri)
+    return new URL(relativePath, deploymentDirectory).href
+  } catch (_) {
+    return cleanPath ? `./${cleanPath}` : './'
+  }
+}
+
+export const getPublicAssetUrl = (assetPath) => resolvePublicAssetUrl(assetPath)
+
+export default {
+  initConfig,
+  getApiBases,
+  getWsBase,
+  hasMultipleApiBases,
+  hasConfiguredApiBase,
+  getTitle,
+  resolvePublicAssetUrl,
+  getPublicAssetUrl
+}

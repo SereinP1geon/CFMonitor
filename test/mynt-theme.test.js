@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 import {
@@ -173,4 +174,18 @@ test('normalization and resolution never mutate input objects', () => {
 test('selects readable neutral text for bright and dark accents', () => {
   assert.equal(getContrastTextColor('#FFFFFF'), '#111318')
   assert.equal(getContrastTextColor('#000000'), '#FFFFFF')
+})
+
+test('keeps an iOS 15 compatible theme fallback and build target', async () => {
+  const [tokens, styles, viteConfig] = await Promise.all([
+    readFile(new URL('../theme-src/mynt/src/styles/tokens.css', import.meta.url), 'utf8'),
+    readFile(new URL('../theme-src/mynt/src/styles/mynt.css', import.meta.url), 'utf8'),
+    readFile(new URL('../theme-src/mynt/vite.config.js', import.meta.url), 'utf8')
+  ])
+
+  assert.match(tokens, /@supports not \(color: color-mix/)
+  assert.match(styles, /-webkit-backdrop-filter:/)
+  assert.match(styles, /background-attachment:\s*scroll/)
+  assert.match(styles, /env\(safe-area-inset-bottom\)/)
+  assert.match(viteConfig, /target:\s*\['es2020', 'safari15'\]/)
 })

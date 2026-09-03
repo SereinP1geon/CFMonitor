@@ -72,3 +72,43 @@
   --mynt-scrim: rgb(0 0 0 / 0.66);
   color-scheme: dark;
 }
+
+/* Safari on iOS 15 accepts custom-property tokens without validating
+ * color-mix(), then drops the consuming declaration. Keep a complete static
+ * Material You palette for those engines instead of leaving surfaces and text
+ * transparent. Newer browsers continue to use the seed-derived palette above.
+ */
+@supports not (color: color-mix(in srgb, #000 50%, #fff)) {
+  :root {
+    --mynt-primary: #4382ec;
+    --mynt-on-primary: #ffffff;
+    --mynt-primary-container: #d9e6fb;
+    --mynt-on-primary-container: #26354d;
+    --mynt-bg: #edf2fb;
+    --mynt-surface: #fbfcff;
+    --mynt-surface-high: #f2f5fb;
+    --mynt-surface-highest: #e8eef8;
+    --mynt-on-surface: #202a38;
+    --mynt-on-surface-muted: #5d6878;
+    --mynt-outline: #99a6b8;
+    --mynt-outline-soft: #d3dbe7;
+    --mynt-shadow: 0 14px 40px rgb(31 65 115 / 0.13);
+    --mynt-shadow-hover: 0 22px 58px rgb(31 65 115 / 0.21);
+  }
+
+  :root[data-mynt-resolved-mode="dark"],
+  :root[data-mynt-color-mode="dark"] {
+    --mynt-primary: #9fc2ff;
+    --mynt-on-primary: #102342;
+    --mynt-primary-container: #33445f;
+    --mynt-on-primary-container: #e6efff;
+    --mynt-bg: #12151b;
+    --mynt-surface: #1a1d24;
+    --mynt-surface-high: #242831;
+    --mynt-surface-highest: #2e333e;
+    --mynt-on-surface: #eef1f8;
+    --mynt-on-surface-muted: #bdc5d2;
+    --mynt-outline: #778191;
+    --mynt-outline-soft: #373d48;
+  }
+}

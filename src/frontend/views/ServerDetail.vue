@@ -39,8 +39,15 @@
         <div class="host-name">
           <span class="prompt">root@</span>
           <span v-if="server.region && server.region !== 'xx'" class="country-os-icons">
-            <img :src="getPublicAssetUrl('flags/' + getFlagRegionCode(server.region) + '.svg')" :alt="server.region" class="flag-img">
-            <OsIcon :os="server.os" />
+            <PublicAssetImage
+              :src="'flags/' + getFlagRegionCode(server.region) + '.svg'"
+              :alt="server.region"
+              class="flag-img"
+              :fallback="getFlagRegionCode(server.region).toUpperCase()"
+              loading="eager"
+              decoding="async"
+            />
+            <OsIcon :os="server.os" eager />
           </span>
           <span v-else class="country-os-icons">
             <span class="flag-fallback">🏳️</span>
@@ -131,7 +138,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="cpuChartRef"></canvas>
+          <div v-if="chartErrors.cpu" class="chart-error" role="status">{{ chartErrors.cpu }}</div>
+          <canvas v-show="!chartErrors.cpu" ref="cpuChartRef"></canvas>
         </div>
       </div>
 
@@ -150,7 +158,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="ramChartRef"></canvas>
+          <div v-if="chartErrors.ram" class="chart-error" role="status">{{ chartErrors.ram }}</div>
+          <canvas v-show="!chartErrors.ram" ref="ramChartRef"></canvas>
         </div>
       </div>
 
@@ -169,7 +178,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="netChartRef"></canvas>
+          <div v-if="chartErrors.net" class="chart-error" role="status">{{ chartErrors.net }}</div>
+          <canvas v-show="!chartErrors.net" ref="netChartRef"></canvas>
         </div>
       </div>
 
@@ -189,7 +199,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="loadChartRef"></canvas>
+          <div v-if="chartErrors.load" class="chart-error" role="status">{{ chartErrors.load }}</div>
+          <canvas v-show="!chartErrors.load" ref="loadChartRef"></canvas>
         </div>
       </div>
 
@@ -208,7 +219,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="diskChartRef"></canvas>
+          <div v-if="chartErrors.disk" class="chart-error" role="status">{{ chartErrors.disk }}</div>
+          <canvas v-show="!chartErrors.disk" ref="diskChartRef"></canvas>
         </div>
       </div>
 
@@ -230,7 +242,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="diskIoChartRef"></canvas>
+          <div v-if="chartErrors.diskIo" class="chart-error" role="status">{{ chartErrors.diskIo }}</div>
+          <canvas v-show="!chartErrors.diskIo" ref="diskIoChartRef"></canvas>
         </div>
       </div>
 
@@ -246,7 +259,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="gpuChartRef"></canvas>
+          <div v-if="chartErrors.gpu" class="chart-error" role="status">{{ chartErrors.gpu }}</div>
+          <canvas v-show="!chartErrors.gpu" ref="gpuChartRef"></canvas>
         </div>
       </div>
 
@@ -262,7 +276,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="procChartRef"></canvas>
+          <div v-if="chartErrors.proc" class="chart-error" role="status">{{ chartErrors.proc }}</div>
+          <canvas v-show="!chartErrors.proc" ref="procChartRef"></canvas>
         </div>
       </div>
 
@@ -281,7 +296,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="connChartRef"></canvas>
+          <div v-if="chartErrors.conn" class="chart-error" role="status">{{ chartErrors.conn }}</div>
+          <canvas v-show="!chartErrors.conn" ref="connChartRef"></canvas>
         </div>
       </div>
 
@@ -301,7 +317,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="pingChartRef"></canvas>
+          <div v-if="chartErrors.ping" class="chart-error" role="status">{{ chartErrors.ping }}</div>
+          <canvas v-show="!chartErrors.ping" ref="pingChartRef"></canvas>
         </div>
       </div>
 
@@ -322,7 +339,8 @@
           </div>
         </div>
         <div class="chart-body">
-          <canvas ref="lossChartRef"></canvas>
+          <div v-if="chartErrors.loss" class="chart-error" role="status">{{ chartErrors.loss }}</div>
+          <canvas v-show="!chartErrors.loss" ref="lossChartRef"></canvas>
         </div>
       </div>
     </div>
@@ -361,10 +379,10 @@ import { useRoute, useRouter } from 'vue-router'
 import TerminalHeader from '../components/TerminalHeader.vue'
 import Footer from '../components/Footer.vue'
 import OsIcon from '../components/OsIcon.vue'
+import PublicAssetImage from '../components/PublicAssetImage.vue'
 import LiveConnectionTimeoutModal from '../components/LiveConnectionTimeoutModal.vue'
 import { fetchServerDetail, fetchAllHistory, fetchConfig, formatBytes, isAdminLoggedIn, createLiveSocket, getFlagRegionCode, isServerOnline, normalizeLiveSocketTimeoutMinutes } from '../utils/api.js'
 import { getTrafficUsageBytes } from '../composables/useServerCardData'
-import { getPublicAssetUrl } from '../utils/config.js'
 import Chart from 'chart.js/auto'
 import 'chartjs-adapter-date-fns'
 import { t, currentLang, useTranslation } from '../utils/i18n'
@@ -398,6 +416,7 @@ if (indexParam !== undefined && indexParam !== null && !isNaN(parseInt(indexPara
 const server = ref({})
 const REALTIME_HISTORY_HOURS = 0.167
 const LATEST_REPORT_MAX_REPLAY_DELAY = 120000
+const REPORT_CHART_UPDATE_INTERVAL_MS = 30000
 const currentHours = ref(REALTIME_HISTORY_HOURS)
 const lastUpdateText = ref('')
 const config = ref(null)
@@ -602,6 +621,7 @@ const hasDiskIoData = ref(false)
 
 const charts = {}
 const chartsReady = ref(false)
+const chartErrors = ref({})
 const expandedCharts = ref({})
 const lossHistoryFields = ref({})
 const avgPingCt = ref(null)
@@ -614,12 +634,19 @@ const avgLossCm = ref(null)
 const avgLossBd = ref(null)
 let isInitializingCharts = false
 let databaseUpgradeAlertShown = false
+let chartResizeObserver = null
+let chartResizeFrame = 0
+let chartResizeTimer = 0
+let chartInitRetryTimer = 0
+let lastReportChartUpdateTime = 0
 
 const isChartExpanded = (key) => !!expandedCharts.value[key]
 
 const resizeChartAfterLayout = (key) => {
   nextTick(() => {
     requestAnimationFrame(() => {
+      const def = CHART_DEFS.find(item => item.key === key)
+      if (def) initChart(def)
       const chart = charts[key]
       if (!chart) return
       if (typeof chart.resize === 'function') chart.resize()
@@ -640,6 +667,8 @@ const showDiskIoChart = () => {
   if (hasDiskIoData.value) return
   hasDiskIoData.value = true
   nextTick(() => {
+    const def = CHART_DEFS.find(item => item.key === 'diskIo')
+    if (def) initChart(def)
     if (!charts.diskIo) return
     if (typeof charts.diskIo.resize === 'function') charts.diskIo.resize()
     charts.diskIo.update('none')
@@ -670,11 +699,15 @@ const visiblePingStats = computed(() => visiblePingFields.value.map(item => ({
 const trafficUsageBytes = computed(() => getTrafficUsageBytes(server.value))
 
 const safeDestroyCharts = () => {
-  try {
-    for (const key of Object.keys(charts)) {
-      if (charts[key]) { charts[key].destroy(); charts[key] = null }
+  for (const key of Object.keys(charts)) {
+    try {
+      charts[key]?.destroy()
+    } catch (e) {
+      console.warn(`[WARN] Failed to destroy ${key} chart:`, e)
     }
-  } catch (e) { /* ignore */ }
+    charts[key] = null
+  }
+  chartsReady.value = false
 }
 
 const parseLoadAvg = (loadAvgStr) => {
@@ -894,9 +927,7 @@ const getChartThemeColors = () => ({
   tooltipBorder: getCssVar('--border-color', '#1e2a3a')
 })
 
-const initCharts = () => {
-  safeDestroyCharts()
-
+const configureChartDefaults = () => {
   const chartTheme = getChartThemeColors()
 
   Chart.defaults.font.family = "'JetBrains Mono', 'Courier New', monospace"
@@ -911,8 +942,10 @@ const initCharts = () => {
   Chart.defaults.plugins.tooltip.bodyFont = { size: 11, family: "'JetBrains Mono', monospace" }
   Chart.defaults.plugins.tooltip.padding = 12
   Chart.defaults.plugins.tooltip.cornerRadius = 2
+}
 
-  const createChartOptions = (unit = '', showLegend = false, formatCallback = null, tickFormat = null, extraScales = null) => {
+const createChartOptions = (unit = '', showLegend = false, formatCallback = null, tickFormat = null, extraScales = null) => {
+    const chartTheme = getChartThemeColors()
     const resolvedExtraScales = typeof extraScales === 'function'
       ? extraScales(chartTheme)
       : (extraScales || {})
@@ -1011,21 +1044,103 @@ const initCharts = () => {
         line: { tension: 0.4, borderWidth: 1.5, fill: false, spanGaps: false }
       }
     }
-  }
+}
 
-  for (const def of CHART_DEFS) {
-    const ref = def.ref()
-    if (!ref) continue
-    charts[def.key] = new Chart(ref.getContext('2d'), {
+const isChartCanvasReady = (canvas) => {
+  if (!canvas?.isConnected) return false
+  const body = canvas.parentElement
+  if (!body) return false
+  const style = window.getComputedStyle(body)
+  if (style.display === 'none' || style.visibility === 'hidden') return false
+  const bodyRect = body.getBoundingClientRect()
+  const canvasRect = canvas.getBoundingClientRect()
+  return bodyRect.width > 0 && bodyRect.height > 0 && canvasRect.width > 0 && canvasRect.height > 0
+}
+
+const setChartError = (key, error) => {
+  console.error(`[ERROR] Failed to initialize ${key} chart:`, error)
+  chartErrors.value = {
+    ...chartErrors.value,
+    [key]: currentLang.value === 'en' ? 'Chart unavailable' : '图表暂时无法显示'
+  }
+}
+
+const initChart = (def) => {
+  if (charts[def.key] || chartErrors.value[def.key]) return !!charts[def.key]
+  const canvas = def.ref()
+  if (!isChartCanvasReady(canvas)) return false
+
+  try {
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('Canvas 2D context is unavailable')
+    charts[def.key] = new Chart(context, {
       type: 'line',
       data: { labels: [], datasets: def.datasets.map(d => ({ ...d })) },
-      options: createChartOptions(def.unit || '', def.legend, def.formatValue, def.tickFormat, def.extraScales)
+      options: {
+        ...createChartOptions(def.unit || '', def.legend, def.formatValue, def.tickFormat, def.extraScales),
+        devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+      }
     })
+    if (def.key === 'gpu') rebuildGpuChartDatasets()
+    if (def.key === 'ping' || def.key === 'loss') syncProbeChartVisibility()
+    return true
+  } catch (error) {
+    try { (charts[def.key] || Chart.getChart(canvas))?.destroy() } catch (e) { /* isolated cleanup */ }
+    charts[def.key] = null
+    setChartError(def.key, error)
+    return false
   }
-
-  rebuildGpuChartDatasets()
-  syncProbeChartVisibility()
 }
+
+const initVisibleCharts = () => {
+  configureChartDefaults()
+  let initialized = 0
+  for (const def of CHART_DEFS) {
+    if (initChart(def)) initialized++
+  }
+  chartsReady.value = initialized > 0
+  return initialized
+}
+
+const resizeVisibleCharts = () => {
+  initVisibleCharts()
+  for (const def of CHART_DEFS) {
+    const chart = charts[def.key]
+    if (!chart || !isChartCanvasReady(def.ref())) continue
+    try {
+      chart.resize()
+      chart.update('none')
+    } catch (error) {
+      // A resize failure is isolated so the live connection and other charts continue.
+      try { chart.destroy() } catch (e) { /* isolated cleanup */ }
+      charts[def.key] = null
+      setChartError(def.key, error)
+    }
+  }
+}
+
+const scheduleChartResize = () => {
+  clearTimeout(chartResizeTimer)
+  chartResizeTimer = window.setTimeout(() => {
+    if (chartResizeFrame) cancelAnimationFrame(chartResizeFrame)
+    chartResizeFrame = requestAnimationFrame(() => {
+      chartResizeFrame = 0
+      resizeVisibleCharts()
+    })
+  }, 80)
+}
+
+const observeChartContainers = () => {
+  chartResizeObserver?.disconnect()
+  if (typeof ResizeObserver === 'undefined') return
+  chartResizeObserver = new ResizeObserver(scheduleChartResize)
+  for (const def of CHART_DEFS) {
+    const body = def.ref()?.parentElement
+    if (body) chartResizeObserver.observe(body)
+  }
+}
+
+const handleChartPageShow = () => scheduleChartResize()
 
 const updateChartsTheme = () => {
   const chartTheme = getChartThemeColors()
@@ -1204,15 +1319,24 @@ const clearDiskIoChart = () => {
 const loadAllHistory = async (hours) => {
   try {
     const allData = await fetchAllHistory(serverId, hours, apiIndex.value)
+    lastReportChartUpdateTime = 0
     lossHistoryFields.value = Object.fromEntries(PING_FIELD_DEFS.map(item => [
       item.lossField,
       allData.some(row => isLossValid(row[item.lossField]))
     ]))
+    const diskIoRows = allData.filter(hasValidDiskIoPayload)
+    if (diskIoRows.length > 0) markDiskIoDataAvailable(diskIoRows[0])
+    await nextTick()
+    initVisibleCharts()
 
     if (allData.length > 0) {
+      lastReportChartUpdateTime = allData.reduce((latest, row) => {
+        const rowTime = new Date(row.timestamp).getTime()
+        return Number.isFinite(rowTime) ? Math.max(latest, rowTime) : latest
+      }, 0)
       updateChartDataset(charts.cpu, 0, allData, fieldAccessor('cpu', true))
       rebuildGpuChartDatasets()
-      for (let i = 0; i < charts.gpu.data.datasets.length; i++) {
+      for (let i = 0; i < (charts.gpu?.data.datasets.length || 0); i++) {
         const dataset = charts.gpu.data.datasets[i]
         const gpuId = dataset.gpuId
         const accessor = gpuId
@@ -1229,9 +1353,7 @@ const loadAllHistory = async (hours) => {
       updateChartDataset(charts.ram, 0, allData, percentAccessor('ram_used', 'ram_total'))
       updateChartDataset(charts.ram, 1, allData, percentAccessor('swap_used', 'swap_total'))
       updateChartDataset(charts.disk, 0, allData, percentAccessor('disk_used', 'disk_total'))
-      const diskIoRows = allData.filter(hasValidDiskIoPayload)
       if (diskIoRows.length > 0) {
-        markDiskIoDataAvailable(diskIoRows[0])
         DISK_IO_FIELDS.forEach((field, index) => {
           updateChartDataset(charts.diskIo, index, diskIoRows, diskIoAccessor(field))
         })
@@ -1499,7 +1621,6 @@ const appendRealtimeSampleCharts = (data, dataTimestamp) => {
   appendDataToChart(charts.ram, 1, dataTimestamp, swapPercent)
   appendDataToChart(charts.net, 0, dataTimestamp, data.net_in_speed)
   appendDataToChart(charts.net, 1, dataTimestamp, data.net_out_speed)
-  appendDiskIoChart(data, dataTimestamp)
 }
 
 const appendDiskIoChart = (data, dataTimestamp) => {
@@ -1513,7 +1634,7 @@ const appendDiskIoChart = (data, dataTimestamp) => {
 const appendReportCharts = (data, dataTimestamp) => {
   rebuildGpuChartDatasets()
   const latestGpuList = parseGpuInfo(data.gpu_info)
-  for (let i = 0; i < charts.gpu.data.datasets.length; i++) {
+  for (let i = 0; i < (charts.gpu?.data.datasets.length || 0); i++) {
     const dataset = charts.gpu.data.datasets[i]
     const gpuId = dataset.gpuId
     const found = latestGpuList.find(g => String(g.id) === String(gpuId))
@@ -1539,6 +1660,15 @@ const appendReportCharts = (data, dataTimestamp) => {
   appendDataToChart(charts.loss, 2, dataTimestamp, data.loss_cm, false, true)
   appendDataToChart(charts.loss, 3, dataTimestamp, data.loss_bd, false, true)
   appendLoadChartData(dataTimestamp, data.load_avg)
+}
+
+const appendReportChartsThrottled = (data, dataTimestamp) => {
+  if (!Number.isFinite(dataTimestamp)) return
+  if (lastReportChartUpdateTime && dataTimestamp - lastReportChartUpdateTime < REPORT_CHART_UPDATE_INTERVAL_MS) {
+    return
+  }
+  appendReportCharts(data, dataTimestamp)
+  lastReportChartUpdateTime = dataTimestamp
 }
 
 const shouldMergeIncomingField = (key, mergeMode) => {
@@ -1588,9 +1718,11 @@ const fetchCurrentStatus = async (incomingData, options = {}) => {
     syncProbeChartVisibility()
 
     if (data.last_updated && chartsReady.value && isRealtimeHistoryRange()) {
+      await nextTick()
+      initVisibleCharts()
       const dataTimestamp = new Date(data.last_updated).getTime()
       if (chartMode === 'sample' || chartMode === 'all') appendRealtimeSampleCharts(data, dataTimestamp)
-      if (chartMode === 'report' || chartMode === 'all') appendReportCharts(data, dataTimestamp)
+      if (chartMode === 'report' || chartMode === 'all') appendReportChartsThrottled(data, dataTimestamp)
     }
 
     if (data.last_updated) {
@@ -1629,28 +1761,24 @@ let liveSocket = null
 let liveConnectionClosedByUser = false
 
 const initChartsOnMount = async () => {
-  if (isInitializingCharts || chartsReady.value) return
+  if (isInitializingCharts) return
   isInitializingCharts = true
 
   await nextTick()
-  
-  const allRefsReady = cpuChartRef.value && gpuChartRef.value && ramChartRef.value && diskChartRef.value && diskIoChartRef.value &&
-    netChartRef.value && procChartRef.value && connChartRef.value && pingChartRef.value && lossChartRef.value && loadChartRef.value
-  
-  if (allRefsReady) {
-    try {
-      initCharts()
-      chartsReady.value = true
-    } finally {
-      isInitializingCharts = false
+  try {
+    const initialized = initVisibleCharts()
+    observeChartContainers()
+    if (initialized === 0 && !loadError.value) {
+      clearTimeout(chartInitRetryTimer)
+      chartInitRetryTimer = window.setTimeout(initChartsOnMount, 50)
     }
-  } else {
+  } finally {
     isInitializingCharts = false
-    setTimeout(initChartsOnMount, 30)
   }
 }
 
 const handleVisibility = () => {
+  if (!document.hidden) scheduleChartResize()
   if (!liveSocket) return
   if (document.hidden) {
     clearLatestReportReplayTimers()
@@ -1732,20 +1860,45 @@ const init = async () => {
 }
 
 watch([cpuChartRef, gpuChartRef, ramChartRef, diskChartRef, diskIoChartRef, netChartRef, procChartRef, connChartRef, pingChartRef, lossChartRef, loadChartRef], () => {
-  if (!chartsReady.value) {
-    initChartsOnMount()
-  }
+  initChartsOnMount()
+})
+
+watch([hasGpuData, hasDiskIoData, hasPingData, hasLossData], () => {
+  nextTick(scheduleChartResize)
 })
 
 onMounted(() => {
+  window.addEventListener('orientationchange', scheduleChartResize)
+  window.addEventListener('pageshow', handleChartPageShow)
   init()
 })
 
 onUnmounted(() => {
   document.removeEventListener('visibilitychange', handleVisibility)
+  window.removeEventListener('orientationchange', scheduleChartResize)
+  window.removeEventListener('pageshow', handleChartPageShow)
+  chartResizeObserver?.disconnect()
+  chartResizeObserver = null
+  clearTimeout(chartResizeTimer)
+  clearTimeout(chartInitRetryTimer)
+  if (chartResizeFrame) cancelAnimationFrame(chartResizeFrame)
+  chartResizeFrame = 0
   if (liveSocket) liveSocket.close()
   clearLatestReportReplayTimers()
   lastGpuSignature = ''
   safeDestroyCharts()
 })
 </script>
+
+<style scoped>
+.chart-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: 1rem;
+  color: var(--text-muted, #8b949e);
+  font-size: 0.8rem;
+  text-align: center;
+}
+</style>

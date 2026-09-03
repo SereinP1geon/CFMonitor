@@ -14,15 +14,16 @@ import {
   validatePingNode
 } from '../src/utils/agentConfig.js';
 import { md5Hash } from '../src/utils/common.js';
-import { isWssReportEnabled, normalizeWssReportHours } from '../src/utils/settings.js';
+import { clearSiteSettingsCache, isWssReportEnabled, loadSiteSettings, normalizeWssReportHours, saveSiteOptions } from '../src/utils/settings.js';
 
 const server = {
   collect_interval: 1,
   report_interval: 60,
-  reset_day: 15
+  reset_day: 15,
+  ping_mode: 'tcp'
 };
-const expected = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=5&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=&connection_mode=http';
-const expectedWssEnabled = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=5&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=&connection_mode=auto&wss_report_interval=2';
+const expected = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=6&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=&connection_mode=http&ping_mode=tcp';
+const expectedWssEnabled = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=6&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=&connection_mode=auto&wss_report_interval=2&ping_mode=tcp';
 const expectedLegacy = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=3&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=';
 
 const config = buildAgentConfig(server);
@@ -51,6 +52,11 @@ assert.equal(schema4Descriptor.serialized, schema4Expected);
 assert.equal(schema4Descriptor.md5, createHash('md5').update(schema4Expected).digest('hex'));
 assert.equal(schema4Descriptor.config.collect_interval, 0);
 assert.equal(Object.prototype.hasOwnProperty.call(schema4Descriptor.config, 'wss_report_interval'), false);
+
+const schema5Expected = 'collect_interval=1&report_interval=60&reset_day=15&schema_version=5&custom_ct=&custom_cu=&custom_cm=&custom_bd=&interface=&connection_mode=auto&wss_report_interval=2';
+const schema5Descriptor = await describeAgentConfig(server, { wss_report_enabled: 'true' }, 5);
+assert.equal(schema5Descriptor.serialized, schema5Expected);
+assert.equal(Object.prototype.hasOwnProperty.call(schema5Descriptor.config, 'ping_mode'), false);
 
 const autoUpdateDescriptor = await describeAgentConfig({ ...server, auto_update: '1' });
 assert.equal(autoUpdateDescriptor.serialized, expected);
@@ -89,8 +95,11 @@ assert.deepEqual(buildAgentConfig({}), {
   custom_bd: '',
   interface: '',
   schema_version: AGENT_CONFIG_SCHEMA_VERSION,
-  connection_mode: 'http'
+  connection_mode: 'http',
+  ping_mode: 'tcp'
 });
+assert.equal(buildAgentConfig({ ping_mode: 'icmp' }).ping_mode, 'icmp');
+assert.equal(buildAgentConfig({ ping_mode: 'bad' }).ping_mode, 'tcp');
 assert.equal(buildAgentConfig({ connection_mode: 'post' }).connection_mode, 'http');
 assert.equal(buildAgentConfig({ connection_mode: 'auto' }, { wss_report_enabled: 'true' }).connection_mode, 'auto');
 assert.equal(buildAgentConfig({ connection_mode: 'auto' }, { wss_report_enabled: 'true' }).wss_report_interval, 2);
@@ -105,6 +114,56 @@ assert.equal(Object.prototype.hasOwnProperty.call(
 assert.deepEqual(normalizeWssReportHours(undefined), Array.from({ length: 24 }, (_, hour) => hour));
 assert.deepEqual(normalizeWssReportHours('[23, 2, 2, 99, "4"]'), [2, 4, 23]);
 assert.deepEqual(normalizeWssReportHours([]), []);
+clearSiteSettingsCache();
+{
+  const createEmptySettingsDb = () => {
+    let persistedSiteOptions = null;
+    return {
+      get persistedSiteOptions() {
+        return persistedSiteOptions;
+      },
+      prepare(sql) {
+        return {
+          bind(...args) {
+            this.args = args;
+            return this;
+          },
+          async first() {
+            if (sql.includes("WHERE key = 'site_options'")) {
+              return persistedSiteOptions ? { value: persistedSiteOptions } : null;
+            }
+            return null;
+          },
+          async all() {
+            return { results: [] };
+          },
+          async run() {
+            if (sql.includes('INSERT INTO settings') && Array.isArray(this.args)) {
+              if (this.args[0] === 'site_options' && typeof this.args[1] === 'string') {
+                persistedSiteOptions = this.args[1];
+              } else if (sql.includes('json_object')) {
+                persistedSiteOptions = JSON.stringify({ jwt_secret: this.args[0] });
+              }
+            }
+            return { success: true };
+          }
+        };
+      }
+    };
+  };
+  const emptySettingsDb = createEmptySettingsDb();
+  const defaultSettings = await loadSiteSettings(emptySettingsDb, { forceRefresh: true });
+  assert.equal(defaultSettings.show_three_net_details, 'true');
+  assert.equal(defaultSettings.wss_report_enabled, 'true');
+  assert.deepEqual(defaultSettings.wss_report_hours, Array.from({ length: 24 }, (_, hour) => hour));
+  assert.equal(isWssReportEnabled(defaultSettings, new Date('2026-08-20T10:00:00Z')), true);
+
+  clearSiteSettingsCache();
+  const initializedSiteOptions = await saveSiteOptions(createEmptySettingsDb(), { servers_optimized: 'true' });
+  assert.equal(initializedSiteOptions.show_three_net_details, 'true');
+  assert.equal(initializedSiteOptions.wss_report_enabled, 'true');
+  assert.deepEqual(initializedSiteOptions.wss_report_hours, Array.from({ length: 24 }, (_, hour) => hour));
+}
 assert.equal(isWssReportEnabled(
   { wss_report_enabled: 'true', wss_report_hours: [8, 9] },
   new Date('2026-08-20T08:30:00Z')
@@ -119,6 +178,8 @@ assert.equal(isWssReportEnabled(
 ), false);
 assert.equal(validateAgentConfigInput({ ...server, connection_mode: 'http' }).config.connection_mode, 'http');
 assert.equal(validateAgentConfigInput({ ...server, connection_mode: 'bad' }).valid, false);
+assert.equal(validateAgentConfigInput({ ...server, ping_mode: 'icmp' }).config.ping_mode, 'icmp');
+assert.equal(validateAgentConfigInput({ ...server, ping_mode: 'bad' }).valid, false);
 assert.equal(validateAgentConfigInput({ ...server, wss_report_interval: 1 }).valid, true);
 assert.equal(validateAgentConfigInput({ ...server, wss_report_interval: 5 }).valid, true);
 assert.equal(validateAgentConfigInput({ ...server, wss_report_interval: 0 }).valid, false);

@@ -332,6 +332,7 @@ watch(() => props.open, async (isOpen) => {
   inset: 0;
   display: flex;
   justify-content: flex-end;
+  background: rgb(23 32 51 / 0.38);
   background: color-mix(in srgb, var(--mynt-scrim, #172033) 38%, transparent);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
@@ -496,6 +497,7 @@ watch(() => props.open, async (isOpen) => {
   border-radius: 50%;
   color: var(--mynt-swatch-foreground, #fff);
   background: var(--swatch-color, var(--mynt-primary, #4382ec));
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.25), 0 0 0 1px var(--mynt-outline-variant, #cac4d0);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 25%, transparent), 0 0 0 1px var(--mynt-outline-variant, #cac4d0);
 }
 
@@ -508,10 +510,12 @@ watch(() => props.open, async (isOpen) => {
 .mynt-swatch:hover,
 .mynt-swatch:focus-visible,
 .mynt-color-picker:focus-within .mynt-color-picker__preview {
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.38), 0 0 0 3px rgb(67 130 236 / 0.25);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 38%, transparent), 0 0 0 3px color-mix(in srgb, var(--mynt-primary, #4382ec) 25%, transparent);
 }
 
 .mynt-swatch.is-active {
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.55), 0 0 0 3px var(--mynt-primary, #4382ec);
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 55%, transparent), 0 0 0 3px var(--mynt-primary, #4382ec);
 }
 
