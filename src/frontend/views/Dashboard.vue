@@ -147,7 +147,7 @@
           <span class="stat-offline-color">{{ trans.offline }}:{{ stats.offline }}</span>
         </div>
       </div>
-      <div v-if="!isCompactMobile" class="stat-item">
+      <div class="stat-item">
         <div class="stat-label">{{ trans.totalTraffic }}</div>
         <div class="stat-main-value stat-main-value-sm">{{ formatBytes(stats.globalNetRx) }} ↓ | ↑ {{ formatBytes(stats.globalNetTx) }}</div>
       </div>
@@ -159,7 +159,7 @@
         </div>
       </div>
       <div
-        v-if="!isCompactMobile && sysConfig.show_price"
+        v-if="sysConfig.show_price"
         class="stat-item stat-action-item"
         @click="financeModalOpen = true"
       >
@@ -170,27 +170,6 @@
         </div>
       </div>
     </div>
-
-    <details v-if="isCompactMobile" class="compact-mobile-overview">
-      <summary>{{ currentLang === 'zh' ? '概览' : 'Overview' }}</summary>
-      <div class="compact-mobile-overview-grid">
-        <div class="stat-item">
-          <div class="stat-label">{{ trans.totalTraffic }}</div>
-          <div class="stat-main-value stat-main-value-sm">{{ formatBytes(stats.globalNetRx) }} ↓ | ↑ {{ formatBytes(stats.globalNetTx) }}</div>
-        </div>
-        <div
-          v-if="sysConfig.show_price"
-          class="stat-item stat-action-item"
-          @click="financeModalOpen = true"
-        >
-          <div class="stat-label">{{ trans.remainingValue }}</div>
-          <div class="stat-main-value stat-main-value-sm">
-            {{ formattedRemainingValue.symbol }}{{ formattedRemainingValue.value }}
-            <span class="finance-currency-code">{{ formattedRemainingValue.currency }}</span>
-          </div>
-        </div>
-      </div>
-    </details>
 
     <div v-if="isCompactMobile" class="filter-wrap compact-mobile-filter-wrap" ref="filterWrap">
       <div class="filter-bar compact-mobile-filter-bar" id="ajax-filters">
