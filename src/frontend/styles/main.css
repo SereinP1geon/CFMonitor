@@ -1759,8 +1759,10 @@ body::before {
     z-index: 30;
     max-width: 180px;
     padding: 6px 8px;
+    border: 1px solid var(--border-color);
     border: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
     border-radius: 4px;
+    background: var(--bg-primary);
     background: color-mix(in srgb, var(--bg-primary) 94%, black);
     box-shadow: 0 8px 22px rgba(0, 0, 0, .28);
     color: var(--text-primary);
@@ -1777,8 +1779,11 @@ body::before {
     z-index: 29;
     width: 8px;
     height: 8px;
+    border-right: 1px solid var(--border-color);
     border-right: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+    border-bottom: 1px solid var(--border-color);
     border-bottom: 1px solid color-mix(in srgb, var(--border-color) 72%, transparent);
+    background: var(--bg-primary);
     background: color-mix(in srgb, var(--bg-primary) 94%, black);
     transform: translate(calc(-50% + var(--three-net-tooltip-shift, 0px)), 3px) rotate(45deg) scale(.98);
 }
@@ -2517,8 +2522,10 @@ body::before {
     justify-content: center;
     width: 17px;
     height: 17px;
+    border: 1px solid var(--border-active);
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 62%, var(--border-active));
     border-radius: 50%;
+    background: var(--bg-primary);
     background: color-mix(in srgb, var(--bg-primary) 88%, var(--accent-cyan));
     color: var(--accent-cyan);
     cursor: help;
@@ -2551,8 +2558,10 @@ body::before {
     width: max-content;
     max-width: min(360px, calc(100vw - 40px));
     padding: 10px 12px;
+    border: 1px solid var(--border-active);
     border: 1px solid color-mix(in srgb, var(--border-active) 82%, var(--accent-cyan));
     border-radius: 6px;
+    background: var(--bg-primary);
     background: color-mix(in srgb, var(--bg-primary) 94%, black);
     color: var(--text-primary);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.42), 0 0 18px rgba(57, 210, 192, 0.12);
@@ -2575,7 +2584,9 @@ body::before {
     left: var(--tooltip-arrow-left, 50%);
     width: 9px;
     height: 9px;
+    border-color: var(--border-active);
     border-color: color-mix(in srgb, var(--border-active) 82%, var(--accent-cyan));
+    background: var(--bg-primary);
     background: color-mix(in srgb, var(--bg-primary) 94%, black);
     transform: translateX(-50%) rotate(45deg);
 }

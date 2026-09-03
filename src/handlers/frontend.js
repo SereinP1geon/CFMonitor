@@ -130,7 +130,7 @@ function injectAppearanceSettings(html, settings, env = {}) {
   };
 }
 
-function getContentType(path) {
+export function getContentType(path) {
   const cleanPath = String(path || '').split('?')[0].toLowerCase();
   if (cleanPath.endsWith('.html')) return 'text/html;charset=UTF-8';
   if (cleanPath.endsWith('.js') || cleanPath.endsWith('.mjs')) return 'application/javascript;charset=UTF-8';
