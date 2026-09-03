@@ -416,6 +416,7 @@ if (indexParam !== undefined && indexParam !== null && !isNaN(parseInt(indexPara
 const server = ref({})
 const REALTIME_HISTORY_HOURS = 0.167
 const LATEST_REPORT_MAX_REPLAY_DELAY = 120000
+const REPORT_CHART_UPDATE_INTERVAL_MS = 30000
 const currentHours = ref(REALTIME_HISTORY_HOURS)
 const lastUpdateText = ref('')
 const config = ref(null)
@@ -637,6 +638,7 @@ let chartResizeObserver = null
 let chartResizeFrame = 0
 let chartResizeTimer = 0
 let chartInitRetryTimer = 0
+let lastReportChartUpdateTime = 0
 
 const isChartExpanded = (key) => !!expandedCharts.value[key]
 
@@ -1317,6 +1319,7 @@ const clearDiskIoChart = () => {
 const loadAllHistory = async (hours) => {
   try {
     const allData = await fetchAllHistory(serverId, hours, apiIndex.value)
+    lastReportChartUpdateTime = 0
     lossHistoryFields.value = Object.fromEntries(PING_FIELD_DEFS.map(item => [
       item.lossField,
       allData.some(row => isLossValid(row[item.lossField]))
@@ -1327,6 +1330,10 @@ const loadAllHistory = async (hours) => {
     initVisibleCharts()
 
     if (allData.length > 0) {
+      lastReportChartUpdateTime = allData.reduce((latest, row) => {
+        const rowTime = new Date(row.timestamp).getTime()
+        return Number.isFinite(rowTime) ? Math.max(latest, rowTime) : latest
+      }, 0)
       updateChartDataset(charts.cpu, 0, allData, fieldAccessor('cpu', true))
       rebuildGpuChartDatasets()
       for (let i = 0; i < (charts.gpu?.data.datasets.length || 0); i++) {
@@ -1614,7 +1621,6 @@ const appendRealtimeSampleCharts = (data, dataTimestamp) => {
   appendDataToChart(charts.ram, 1, dataTimestamp, swapPercent)
   appendDataToChart(charts.net, 0, dataTimestamp, data.net_in_speed)
   appendDataToChart(charts.net, 1, dataTimestamp, data.net_out_speed)
-  appendDiskIoChart(data, dataTimestamp)
 }
 
 const appendDiskIoChart = (data, dataTimestamp) => {
@@ -1654,6 +1660,15 @@ const appendReportCharts = (data, dataTimestamp) => {
   appendDataToChart(charts.loss, 2, dataTimestamp, data.loss_cm, false, true)
   appendDataToChart(charts.loss, 3, dataTimestamp, data.loss_bd, false, true)
   appendLoadChartData(dataTimestamp, data.load_avg)
+}
+
+const appendReportChartsThrottled = (data, dataTimestamp) => {
+  if (!Number.isFinite(dataTimestamp)) return
+  if (lastReportChartUpdateTime && dataTimestamp - lastReportChartUpdateTime < REPORT_CHART_UPDATE_INTERVAL_MS) {
+    return
+  }
+  appendReportCharts(data, dataTimestamp)
+  lastReportChartUpdateTime = dataTimestamp
 }
 
 const shouldMergeIncomingField = (key, mergeMode) => {
@@ -1707,7 +1722,7 @@ const fetchCurrentStatus = async (incomingData, options = {}) => {
       initVisibleCharts()
       const dataTimestamp = new Date(data.last_updated).getTime()
       if (chartMode === 'sample' || chartMode === 'all') appendRealtimeSampleCharts(data, dataTimestamp)
-      if (chartMode === 'report' || chartMode === 'all') appendReportCharts(data, dataTimestamp)
+      if (chartMode === 'report' || chartMode === 'all') appendReportChartsThrottled(data, dataTimestamp)
     }
 
     if (data.last_updated) {
