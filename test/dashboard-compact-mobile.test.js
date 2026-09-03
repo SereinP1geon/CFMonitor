@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFile } from 'node:fs/promises'
 
 import {
   canUseDashboardViewPreference,
@@ -29,4 +30,17 @@ test('desktop view preferences are inaccessible while compact mode is active', (
   assert.equal(canUseDashboardViewPreference({ compactMobile: true, width: 844, coarsePointer: true }), false)
   assert.equal(canUseDashboardViewPreference({ compactMobile: true, width: 1200, coarsePointer: true }), true)
   assert.equal(canUseDashboardViewPreference({ compactMobile: false, width: 390 }), true)
+})
+
+test('compact dashboard renders all summary values in one equal-card grid', async () => {
+  const [dashboard, styles] = await Promise.all([
+    readFile(new URL('../src/frontend/views/Dashboard.vue', import.meta.url), 'utf8'),
+    readFile(new URL('../theme-src/mynt/src/styles/mynt.css', import.meta.url), 'utf8')
+  ])
+
+  assert.doesNotMatch(dashboard, /compact-mobile-overview/)
+  assert.match(dashboard, /<div class="stat-label">\{\{ trans\.totalTraffic \}\}<\/div>/)
+  assert.match(dashboard, /v-if="sysConfig\.show_price"[\s\S]*trans\.remainingValue/)
+  assert.match(styles, /\.compact-mobile-dashboard \.global-stats\s*\{[^}]*grid-template-columns:\s*repeat\(2,[^}]*grid-auto-rows:\s*74px/s)
+  assert.match(styles, /\.compact-mobile-dashboard \.global-stats \.stat-item\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0/s)
 })

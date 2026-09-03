@@ -107,8 +107,8 @@ function buildBodyBackgroundRule(safeUrl) {
   return `body{background-image:url('${safeUrl}') !important;background-size:cover !important;background-attachment:fixed !important;background-position:center !important;background-repeat:no-repeat !important;}`;
 }
 
-function buildIosFixedBackgroundRules(safeUrl) {
-  return `body{position:relative;min-height:100vh;background-image:none !important;background-color:transparent !important;background-attachment:scroll !important;}body::after{content:"";position:fixed;inset:0;width:100%;height:100vh;height:100dvh;pointer-events:none;z-index:-1;background-image:url('${safeUrl}') !important;background-size:cover !important;background-position:center !important;background-repeat:no-repeat !important;}html{background-color:var(--bg-primary,#0d1117) !important;}`;
+function buildIosBodyBackgroundRule(safeUrl) {
+  return `body{min-height:100vh;background-image:url('${safeUrl}') !important;background-size:cover !important;background-attachment:scroll !important;background-position:center top !important;background-repeat:no-repeat !important;}`;
 }
 
 export function buildBackgroundStyle(url, mobileUrl = '') {
@@ -121,14 +121,12 @@ export function buildBackgroundStyle(url, mobileUrl = '') {
   if (desktop) {
     const safe = escapeCssUrl(desktop);
     rules.push(buildBodyBackgroundRule(safe));
-    iosRules.push(buildIosFixedBackgroundRules(safe));
+    iosRules.push(buildIosBodyBackgroundRule(safe));
   }
   if (mobile) {
     const safeMobile = escapeCssUrl(mobile);
     rules.push(`@media (max-width: 767px){${buildBodyBackgroundRule(safeMobile)}}`);
-    const mobileIosRules = desktop
-      ? `@media (max-width: 767px){body::after{background-image:url('${safeMobile}') !important;}}`
-      : `@media (max-width: 767px){${buildIosFixedBackgroundRules(safeMobile)}}`;
+    const mobileIosRules = `@media (max-width: 767px){${buildIosBodyBackgroundRule(safeMobile)}}`;
     iosRules.push(mobileIosRules);
   }
   if (iosRules.length > 0) {
